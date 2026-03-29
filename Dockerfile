@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY --chown=user . /app
 
-ENV DJANGO_SETTINGS_MODULE=fruit_yield_estimator.backend.settings
+ENV DJANGO_SETTINGS_MODULE=backend.settings
 ENV PORT=7860
 
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--timeout", "120", "fruit_yield_estimator.backend.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--timeout", "120", "backend.wsgi:application"]
