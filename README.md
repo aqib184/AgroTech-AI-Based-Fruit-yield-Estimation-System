@@ -1,7 +1,7 @@
 ---
 title: AgroTech2
 emoji: 🐨
-colorFrom: gray
+colorFrom: green
 colorTo: yellow
 sdk: docker
 pinned: false
