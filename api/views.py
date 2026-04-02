@@ -69,6 +69,23 @@ class HealthCheckView(APIView):
         }, status=status.HTTP_200_OK if _models_loaded else status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
+class DebugView(APIView):
+    def get(self, request):
+        import os
+        app_dir = '/app'
+        result = {}
+        for root, dirs, files in os.walk(app_dir):
+            # Skip venv and cache directories
+            dirs[:] = [d for d in dirs if d not in ['__pycache__', 'venv', '.git']]
+            for file in files:
+                if file.endswith(('.pt', '.pth')):
+                    full_path = os.path.join(root, file)
+                    result[full_path] = os.path.getsize(full_path)
+        return Response({
+            "model_files_found": result,
+            "app_contents": os.listdir('/app'),
+        })
+
 class YieldEstimateView(APIView):
     """
     POST /api/predict/yield/
