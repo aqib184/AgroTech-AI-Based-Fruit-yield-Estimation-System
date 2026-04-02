@@ -75,7 +75,6 @@ class DebugView(APIView):
         app_dir = '/app'
         result = {}
         for root, dirs, files in os.walk(app_dir):
-            # Skip venv and cache directories
             dirs[:] = [d for d in dirs if d not in ['__pycache__', 'venv', '.git']]
             for file in files:
                 if file.endswith(('.pt', '.pth')):
