@@ -84,15 +84,19 @@ class LeafSegmentation:
         self._load_model()
 
     def _safe_torch_load(self, path: str):
-        """
-        Load Linux/Kaggle checkpoints on Windows (PosixPath pickle compatibility).
-        """
-        original_posix = pathlib.PosixPath
+    """
+    Load checkpoints with PosixPath compatibility fix.
+    """
         try:
-            pathlib.PosixPath = pathlib.WindowsPath
             return torch.load(path, map_location=self.device, weights_only=False)
-        finally:
-            pathlib.PosixPath = original_posix
+        except Exception:
+        # Fallback: try with PosixPath fix for cross-platform compatibility
+            original_windows = pathlib.WindowsPath
+            try:
+                pathlib.WindowsPath = pathlib.PosixPath
+                return torch.load(path, map_location=self.device, weights_only=False)
+            finally:
+                pathlib.WindowsPath = original_windows
 
     def _extract_state_dict(self, obj):
         if isinstance(obj, dict):
