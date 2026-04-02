@@ -19,8 +19,10 @@ class FruitCounter:
         self.model = None
         self.loaded = False
         self._load_model()
-
+    
+    
     def _load_model(self):
+        print(f"Absolute path: {self.model_path.resolve()}")
         try:
             print(f"Loading YOLO from: {self.model_path}")
             print(f"Model file exists: {self.model_path.exists()}")
@@ -56,7 +58,7 @@ class FruitCounter:
                 img_array = np.array(img)
 
                 # Run inference
-                results = self.model.predict(img_array, conf=0.25, verbose=False)
+                results = self.model.predict(img_array, conf=0.25, verbose=True)
 
                 # Extract detections from first result
                 if results and len(results) > 0:
