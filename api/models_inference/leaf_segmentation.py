@@ -83,14 +83,11 @@ class LeafSegmentation:
 
         self._load_model()
 
+    
     def _safe_torch_load(self, path: str):
-    """
-    Load checkpoints with PosixPath compatibility fix.
-    """
         try:
             return torch.load(path, map_location=self.device, weights_only=False)
         except Exception:
-        # Fallback: try with PosixPath fix for cross-platform compatibility
             original_windows = pathlib.WindowsPath
             try:
                 pathlib.WindowsPath = pathlib.PosixPath
