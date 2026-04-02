@@ -93,11 +93,24 @@ class YieldEstimateView(APIView):
 
         # Extract images
         image_files = request.FILES.getlist('images')
+
+        # Debug: print what we actually received
+        print(f"FILES received: {dict(request.FILES)}")
+        print(f"DATA received: {dict(request.data)}")
+        print(f"Image files found: {len(image_files)}")
+
         if not image_files:
-            return Response(
-                {"error": "At least one image is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            # Try alternative key names
+            image_files = request.FILES.getlist('image') or request.FILES.getlist('file')
+            if not image_files:
+                return Response(
+                    {
+                        "error": "At least one image is required.",
+                        "debug_files_received": list(request.FILES.keys()),
+                        "debug_data_received": list(request.data.keys())
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         # Convert to PIL Images
         try:
