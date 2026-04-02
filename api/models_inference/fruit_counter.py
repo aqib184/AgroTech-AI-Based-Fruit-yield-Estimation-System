@@ -21,15 +21,16 @@ class FruitCounter:
         self._load_model()
 
     def _load_model(self):
-        """Load YOLOv11 model from .pt file."""
         try:
-            # Force CPU device
+            print(f"Loading YOLO from: {self.model_path}")
+            print(f"Model file exists: {self.model_path.exists()}")
+            print(f"Model file size: {self.model_path.stat().st_size if self.model_path.exists() else 'NOT FOUND'}")
             self.model = YOLO(str(self.model_path))
-            self.model.to("cpu")  # Force CPU
+            self.model.to("cpu")
             self.loaded = True
-            print(f"✓ YOLOv11 model loaded from {self.model_path}")
+            print(f"✓ YOLOv11 loaded successfully")
         except Exception as e:
-            print(f"✗ Failed to load YOLOv11 model: {e}")
+            print(f"✗ Failed to load YOLOv11: {e}")
             self.model = None
             self.loaded = False
 
@@ -55,7 +56,7 @@ class FruitCounter:
                 img_array = np.array(img)
 
                 # Run inference
-                results = self.model.predict(img_array, conf=0.4, verbose=False)
+                results = self.model.predict(img_array, conf=0.25, verbose=False)
 
                 # Extract detections from first result
                 if results and len(results) > 0:
