@@ -152,7 +152,14 @@ class YieldEstimateView(APIView):
         try:
             pil_images = []
             for img_file in image_files:
-                pil_images.append(Image.open(io.BytesIO(img_file.read())).convert('RGB'))
+                img_bytes = img_file.read()
+                print(f"Image bytes received: {len(img_bytes)}", flush=True)
+                if len(img_bytes) == 0:
+                    print("WARNING: Empty image file received!", flush=True)
+                    continue
+                pil_img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+                print(f"PIL image size: {pil_img.size}, mode: {pil_img.mode}", flush=True)
+                pil_images.append(pil_img)
         except Exception as e:
             return Response(
                 {"error": f"Failed to process images: {str(e)}"},
