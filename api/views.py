@@ -75,8 +75,6 @@ def load_models():
 
     print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
 
-load_models()
-
 
 class HealthCheckView(APIView):
     """
