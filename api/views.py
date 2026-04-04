@@ -1,4 +1,7 @@
 # Global model instances — loaded once at startup
+import sys
+print("=== views.py loading started ===", flush=True)
+sys.stdout.flush()
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
