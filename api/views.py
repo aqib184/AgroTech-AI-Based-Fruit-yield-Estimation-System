@@ -12,15 +12,18 @@ from .models_inference.leaf_segmentation import LeafSegmentation
 from .utils.yield_calculator import calculate_yield
 from .utils.double_count import correct_double_count
 
+
+
+# Global model instances — loaded once at startup
+import os
+
 # Global model instances — loaded once at startup
 _fruit_counter = None
 _ripeness_classifier = None
 _leaf_segmentation = None
 _models_loaded = False
 
-
-import os
-
+# Load models immediately at module import
 def load_models():
     """Load all three models once at server startup."""
     global _fruit_counter, _ripeness_classifier, _leaf_segmentation, _models_loaded
@@ -52,6 +55,9 @@ def load_models():
     ])
 
     print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
+
+# Call immediately when module is imported
+load_models()
 
 
 class HealthCheckView(APIView):
