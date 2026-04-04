@@ -24,25 +24,24 @@ import os
 def load_models():
     """Load all three models once at server startup."""
     global _fruit_counter, _ripeness_classifier, _leaf_segmentation, _models_loaded
-    
-    # Get absolute path to models directory
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    models_dir = os.path.join(BASE_DIR, 'models')
-    
+
+    models_dir = '/app/models'
+
     print(f"Loading models from: {models_dir}")
-    print(f"Models directory exists: {os.path.exists(models_dir)}")
-    print(f"Files in models dir: {os.listdir(models_dir) if os.path.exists(models_dir) else 'NOT FOUND'}")
-    
+    print(f"fruit_detection.pt exists: {os.path.exists(os.path.join(models_dir, 'fruit_detection.pt'))}")
+    print(f"ripeness_classifier.pth exists: {os.path.exists(os.path.join(models_dir, 'ripeness_classifier.pth'))}")
+    print(f"leaf_segmentation.pth exists: {os.path.exists(os.path.join(models_dir, 'leaf_segmentation.pth'))}")
+
     _fruit_counter = FruitCounter(
-        model_path=os.path.join(models_dir, 'fruit_detection.pt'), 
+        model_path=os.path.join(models_dir, 'fruit_detection.pt'),
         device="cpu"
     )
     _ripeness_classifier = RipenessClassifier(
-        model_path=os.path.join(models_dir, 'ripeness_classifier.pth'), 
+        model_path=os.path.join(models_dir, 'ripeness_classifier.pth'),
         device="cpu"
     )
     _leaf_segmentation = LeafSegmentation(
-        model_path=os.path.join(models_dir, 'leaf_segmentation.pth'), 
+        model_path=os.path.join(models_dir, 'leaf_segmentation.pth'),
         device="cpu"
     )
 
@@ -52,7 +51,7 @@ def load_models():
         _leaf_segmentation and _leaf_segmentation.loaded,
     ])
 
-    print("✓ All models loaded successfully" if _models_loaded else "✗ One or more models failed to load")
+    print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
 
 
 class HealthCheckView(APIView):
