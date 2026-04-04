@@ -30,7 +30,11 @@ class FruitCounter:
             self.model = YOLO(str(self.model_path))
             self.model.to("cpu")
             self.loaded = True
-            print(f"✓ YOLOv11 loaded successfully")
+            # Test with a dummy image
+            import numpy as np
+            dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+            test_result = self.model.predict(dummy, conf=0.25, verbose=False)
+            print(f"✓ YOLO test inference: {len(test_result[0].boxes)} detections on blank image", flush=True)
         except Exception as e:
             print(f"✗ Failed to load YOLOv11: {e}")
             self.model = None
@@ -54,15 +58,18 @@ class FruitCounter:
 
         for img in images:
             try:
-                # Convert PIL to numpy array
                 img_array = np.array(img)
-
-                # Run inference
+                img_h, img_w = img_array.shape[:2]
+                print(f"Image shape: {img_array.shape}, dtype: {img_array.dtype}", flush=True)
+        
                 results = self.model.predict(img_array, conf=0.25, verbose=True)
-
-                # Extract detections from first result
+                print(f"Results: {results}", flush=True)
+                print(f"Number of results: {len(results)}", flush=True)
+        
                 if results and len(results) > 0:
                     result = results[0]
+                    print(f"Boxes: {result.boxes}", flush=True)
+                    print(f"Number of detections: {len(result.boxes)}", flush=True)
                     # result.boxes contains all detections
                     num_detections = len(result.boxes)
                     per_image_counts.append(num_detections)
