@@ -8,5 +8,4 @@ class ApiConfig(AppConfig):
         import sys
         print("=== ApiConfig.ready() called ===", flush=True)
         sys.stdout.flush()
-        from .views import load_models
-        load_models()
+        import api.views  # just trigger the import, load_models runs at bottom of views.py
