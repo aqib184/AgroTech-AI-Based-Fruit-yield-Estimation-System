@@ -104,7 +104,7 @@ class FruitCounter:
                 else:
                     img_to_predict = img  # Use original PIL directly
                 
-                results = self.model.predict(img_to_predict, conf=0.4, verbose=False)
+                results = self.model.predict(img_to_predict, conf=0.35, verbose=False)
                 print(f"Detections: {len(results[0].boxes)}", flush=True)
                 print(f"Confidences: {[round(float(b.conf[0]), 3) for b in results[0].boxes]}", flush=True)
     
