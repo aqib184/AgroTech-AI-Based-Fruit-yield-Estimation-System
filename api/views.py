@@ -71,20 +71,31 @@ class DebugView(APIView):
     def get(self, request):
         import os
         import numpy as np
+        import urllib.request
+        from PIL import Image
+        import io
 
         test_results = {}
 
         try:
-            # Test YOLO with a dummy image
-            test_img = np.zeros((640, 640, 3), dtype=np.uint8)
-            test_img[:, :, 1] = 128  # green channel
-
-            results = _fruit_counter.model.predict(test_img, conf=0.1, verbose=False)
-            test_results['yolo_test'] = {
-                'detections_on_blank': len(results[0].boxes),
-                'model_loaded': _fruit_counter.loaded,
-                'model_path': str(_fruit_counter.model_path),
-                'model_classes': _fruit_counter.model.names
+            # Download a sample MinneApple-style image from the web
+            url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/800px-Red_Apple.jpg"
+            with urllib.request.urlopen(url) as response:
+                img_data = response.read()
+            
+            pil_img = Image.open(io.BytesIO(img_data)).convert('RGB')
+            img_array = np.array(pil_img)
+            
+            print(f"Test image shape: {img_array.shape}", flush=True)
+            
+            results = _fruit_counter.model.predict(img_array, conf=0.1, verbose=True)
+            
+            test_results['yolo_real_image_test'] = {
+                'image_size': pil_img.size,
+                'detections': len(results[0].boxes),
+                'model_classes': _fruit_counter.model.names,
+                'boxes': [box.xyxy[0].tolist() for box in results[0].boxes],
+                'confidences': [float(box.conf[0]) for box in results[0].boxes]
             }
         except Exception as e:
             test_results['yolo_error'] = str(e)
