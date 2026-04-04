@@ -52,96 +52,83 @@ class FruitCounter:
         """
         if not self.loaded or self.model is None:
             raise RuntimeError("YOLO model not loaded")
-
+    
         raw_count = 0
         per_image_counts = []
-
+    
         for img in images:
             try:
                 img_array = np.array(img)
                 img_h, img_w = img_array.shape[:2]
-                print(f"Original shape: {img_array.shape}", flush=True)
-                
+    
                 # Rotate if portrait orientation
                 if img_h > img_w:
                     img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
-                    print(f"Rotated to: {img_array.shape}", flush=True)
-                
-                results = self.model.predict(img_array, conf=0.1, verbose=True)
-                print(f"Detections: {len(results[0].boxes)}", flush=True)
-                print(f"Confidences: {[float(b.conf[0]) for b in results[0].boxes]}", flush=True)
-        
+    
+                results = self.model.predict(img_array, conf=0.1, verbose=False)
+    
                 if results and len(results) > 0:
-                    result = results[0]
-                    print(f"Boxes: {result.boxes}", flush=True)
-                    print(f"Number of detections: {len(result.boxes)}", flush=True)
-                    # result.boxes contains all detections
-                    num_detections = len(result.boxes)
+                    num_detections = len(results[0].boxes)
                     per_image_counts.append(num_detections)
                     raw_count += num_detections
                 else:
                     per_image_counts.append(0)
-
+    
             except Exception as e:
-                print(f"⚠️  Skipped image due to YOLO error: {e}")
+                print(f"⚠️ YOLO error: {e}", flush=True)
                 per_image_counts.append(0)
-
+    
         return raw_count, per_image_counts
 
     def detect_fruits_with_crops(self, images: List[Image.Image]) -> Tuple[int, List[int], List[List[Image.Image]]]:
-        """
-        Run YOLO and also return cropped fruit regions for ripeness classification.
-        
-        Args:
-            images: List of PIL Image objects
-            
-        Returns:
-            (raw_total_count, per_image_counts, list_of_crop_lists)
-        """
         if not self.loaded or self.model is None:
             raise RuntimeError("YOLO model not loaded")
-
+    
         raw_count = 0
         per_image_counts = []
         all_crops = []
-
+    
         for img in images:
             try:
                 img_array = np.array(img)
                 img_h, img_w = img_array.shape[:2]
-
-                # Run inference
-                results = self.model.predict(img_array, conf=0.4, verbose=False)
+                print(f"Image shape: {img_array.shape}", flush=True)
+    
+                # Rotate if portrait orientation
+                if img_h > img_w:
+                    img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
+                    img_h, img_w = img_array.shape[:2]
+                    print(f"Rotated to: {img_array.shape}", flush=True)
+    
+                results = self.model.predict(img_array, conf=0.1, verbose=False)
+                print(f"Detections: {len(results[0].boxes)}", flush=True)
+                print(f"Confidences: {[round(float(b.conf[0]), 3) for b in results[0].boxes]}", flush=True)
+    
                 image_crops = []
-
+    
                 if results and len(results) > 0:
                     result = results[0]
                     num_detections = len(result.boxes)
                     per_image_counts.append(num_detections)
                     raw_count += num_detections
-
-                    # Extract bounding boxes and crop regions
+    
                     for box in result.boxes:
                         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                        
-                        # Clamp to image bounds
                         x1 = max(0, x1)
                         y1 = max(0, y1)
                         x2 = min(img_w, x2)
                         y2 = min(img_h, y2)
-
-                        # Crop from original PIL image
                         crop = img.crop((x1, y1, x2, y2))
                         image_crops.append(crop)
-
+    
                     all_crops.append(image_crops)
                 else:
                     per_image_counts.append(0)
                     all_crops.append([])
-
+    
             except Exception as e:
-                print(f"⚠️  Skipped image due to YOLO error: {e}")
+                print(f"⚠️ YOLO error: {e}", flush=True)
                 per_image_counts.append(0)
                 all_crops.append([])
-
+    
         return raw_count, per_image_counts, all_crops
