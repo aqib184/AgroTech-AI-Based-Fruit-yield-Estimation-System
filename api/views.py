@@ -2,40 +2,50 @@
 import sys
 print("=== views.py loading started ===", flush=True)
 sys.stdout.flush()
+
+print("importing rest_framework...", flush=True)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
+
+print("importing PIL and io...", flush=True)
 from PIL import Image
 import io
 import os
 
+print("importing serializers...", flush=True)
 from .serializers import YieldEstimateSerializer
 
-# Try importing models with error catching
+print("importing FruitCounter...", flush=True)
 try:
     from .models_inference.fruit_counter import FruitCounter
-    print("✓ FruitCounter imported")
+    print("✓ FruitCounter imported", flush=True)
 except Exception as e:
-    print(f"✗ FruitCounter import failed: {e}")
+    print(f"✗ FruitCounter import failed: {e}", flush=True)
     FruitCounter = None
 
+print("importing RipenessClassifier...", flush=True)
 try:
     from .models_inference.ripeness_classifier import RipenessClassifier
-    print("✓ RipenessClassifier imported")
+    print("✓ RipenessClassifier imported", flush=True)
 except Exception as e:
-    print(f"✗ RipenessClassifier import failed: {e}")
+    print(f"✗ RipenessClassifier import failed: {e}", flush=True)
     RipenessClassifier = None
 
+print("importing LeafSegmentation...", flush=True)
 try:
     from .models_inference.leaf_segmentation import LeafSegmentation
-    print("✓ LeafSegmentation imported")
+    print("✓ LeafSegmentation imported", flush=True)
 except Exception as e:
-    print(f"✗ LeafSegmentation import failed: {e}")
+    print(f"✗ LeafSegmentation import failed: {e}", flush=True)
     LeafSegmentation = None
 
+print("importing utils...", flush=True)
 from .utils.yield_calculator import calculate_yield
 from .utils.double_count import correct_double_count
+
+print("=== all imports done ===", flush=True)
 
 # Global model instances
 _fruit_counter = None
