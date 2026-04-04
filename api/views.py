@@ -53,39 +53,6 @@ _ripeness_classifier = None
 _leaf_segmentation = None
 _models_loaded = False
 
-def load_models():
-    global _fruit_counter, _ripeness_classifier, _leaf_segmentation, _models_loaded
-
-    models_dir = '/app/models'
-    print(f"Loading models from: {models_dir}")
-
-    try:
-        _fruit_counter = FruitCounter(model_path=os.path.join(models_dir, 'fruit_detection.pt'), device="cpu")
-        print(f"✓ FruitCounter loaded: {_fruit_counter.loaded}")
-    except Exception as e:
-        print(f"✗ FruitCounter load failed: {e}")
-
-    try:
-        _ripeness_classifier = RipenessClassifier(model_path=os.path.join(models_dir, 'ripeness_classifier.pth'), device="cpu")
-        print(f"✓ RipenessClassifier loaded: {_ripeness_classifier.loaded}")
-    except Exception as e:
-        print(f"✗ RipenessClassifier load failed: {e}")
-
-    try:
-        _leaf_segmentation = LeafSegmentation(model_path=os.path.join(models_dir, 'leaf_segmentation.pth'), device="cpu")
-        print(f"✓ LeafSegmentation loaded: {_leaf_segmentation.loaded}")
-    except Exception as e:
-        print(f"✗ LeafSegmentation load failed: {e}")
-
-    _models_loaded = all([
-        _fruit_counter and _fruit_counter.loaded,
-        _ripeness_classifier and _ripeness_classifier.loaded,
-        _leaf_segmentation and _leaf_segmentation.loaded,
-    ])
-
-    print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
-
-
 class HealthCheckView(APIView):
     """
     GET /api/health/
@@ -290,3 +257,39 @@ class YieldEstimateView(APIView):
                 {"error": f"Inference failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+def load_models():
+    global _fruit_counter, _ripeness_classifier, _leaf_segmentation, _models_loaded
+
+    models_dir = '/app/models'
+    print(f"Loading models from: {models_dir}")
+
+    try:
+        _fruit_counter = FruitCounter(model_path=os.path.join(models_dir, 'fruit_detection.pt'), device="cpu")
+        print(f"✓ FruitCounter loaded: {_fruit_counter.loaded}")
+    except Exception as e:
+        print(f"✗ FruitCounter load failed: {e}")
+
+    try:
+        _ripeness_classifier = RipenessClassifier(model_path=os.path.join(models_dir, 'ripeness_classifier.pth'), device="cpu")
+        print(f"✓ RipenessClassifier loaded: {_ripeness_classifier.loaded}")
+    except Exception as e:
+        print(f"✗ RipenessClassifier load failed: {e}")
+
+    try:
+        _leaf_segmentation = LeafSegmentation(model_path=os.path.join(models_dir, 'leaf_segmentation.pth'), device="cpu")
+        print(f"✓ LeafSegmentation loaded: {_leaf_segmentation.loaded}")
+    except Exception as e:
+        print(f"✗ LeafSegmentation load failed: {e}")
+
+    _models_loaded = all([
+        _fruit_counter and _fruit_counter.loaded,
+        _ripeness_classifier and _ripeness_classifier.loaded,
+        _leaf_segmentation and _leaf_segmentation.loaded,
+    ])
+
+    print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
+
+print("=== calling load_models() ===", flush=True)
+load_models()
+print("=== load_models() complete ===", flush=True)
