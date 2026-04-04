@@ -70,17 +70,28 @@ class HealthCheckView(APIView):
 class DebugView(APIView):
     def get(self, request):
         import os
-        app_dir = '/app'
-        result = {}
-        for root, dirs, files in os.walk(app_dir):
-            dirs[:] = [d for d in dirs if d not in ['__pycache__', 'venv', '.git']]
-            for file in files:
-                if file.endswith(('.pt', '.pth')):
-                    full_path = os.path.join(root, file)
-                    result[full_path] = os.path.getsize(full_path)
+        import numpy as np
+
+        test_results = {}
+
+        try:
+            # Test YOLO with a dummy image
+            test_img = np.zeros((640, 640, 3), dtype=np.uint8)
+            test_img[:, :, 1] = 128  # green channel
+
+            results = _fruit_counter.model.predict(test_img, conf=0.1, verbose=False)
+            test_results['yolo_test'] = {
+                'detections_on_blank': len(results[0].boxes),
+                'model_loaded': _fruit_counter.loaded,
+                'model_path': str(_fruit_counter.model_path),
+                'model_classes': _fruit_counter.model.names
+            }
+        except Exception as e:
+            test_results['yolo_error'] = str(e)
+
         return Response({
-            "model_files_found": result,
-            "app_contents": os.listdir('/app'),
+            "models_loaded": _models_loaded,
+            "yolo_debug": test_results,
         })
 
 class YieldEstimateView(APIView):
