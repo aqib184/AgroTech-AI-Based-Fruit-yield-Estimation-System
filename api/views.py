@@ -1,52 +1,68 @@
+# Global model instances — loaded once at startup
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from PIL import Image
 import io
+import os
 
 from .serializers import YieldEstimateSerializer
-from .models_inference.fruit_counter import FruitCounter
-from .models_inference.ripeness_classifier import RipenessClassifier
-from .models_inference.leaf_segmentation import LeafSegmentation
+
+# Try importing models with error catching
+try:
+    from .models_inference.fruit_counter import FruitCounter
+    print("✓ FruitCounter imported")
+except Exception as e:
+    print(f"✗ FruitCounter import failed: {e}")
+    FruitCounter = None
+
+try:
+    from .models_inference.ripeness_classifier import RipenessClassifier
+    print("✓ RipenessClassifier imported")
+except Exception as e:
+    print(f"✗ RipenessClassifier import failed: {e}")
+    RipenessClassifier = None
+
+try:
+    from .models_inference.leaf_segmentation import LeafSegmentation
+    print("✓ LeafSegmentation imported")
+except Exception as e:
+    print(f"✗ LeafSegmentation import failed: {e}")
+    LeafSegmentation = None
+
 from .utils.yield_calculator import calculate_yield
 from .utils.double_count import correct_double_count
 
-
-
-# Global model instances — loaded once at startup
-import os
-
-# Global model instances — loaded once at startup
+# Global model instances
 _fruit_counter = None
 _ripeness_classifier = None
 _leaf_segmentation = None
 _models_loaded = False
 
-# Load models immediately at module import
 def load_models():
-    """Load all three models once at server startup."""
     global _fruit_counter, _ripeness_classifier, _leaf_segmentation, _models_loaded
 
     models_dir = '/app/models'
-
     print(f"Loading models from: {models_dir}")
-    print(f"fruit_detection.pt exists: {os.path.exists(os.path.join(models_dir, 'fruit_detection.pt'))}")
-    print(f"ripeness_classifier.pth exists: {os.path.exists(os.path.join(models_dir, 'ripeness_classifier.pth'))}")
-    print(f"leaf_segmentation.pth exists: {os.path.exists(os.path.join(models_dir, 'leaf_segmentation.pth'))}")
 
-    _fruit_counter = FruitCounter(
-        model_path=os.path.join(models_dir, 'fruit_detection.pt'),
-        device="cpu"
-    )
-    _ripeness_classifier = RipenessClassifier(
-        model_path=os.path.join(models_dir, 'ripeness_classifier.pth'),
-        device="cpu"
-    )
-    _leaf_segmentation = LeafSegmentation(
-        model_path=os.path.join(models_dir, 'leaf_segmentation.pth'),
-        device="cpu"
-    )
+    try:
+        _fruit_counter = FruitCounter(model_path=os.path.join(models_dir, 'fruit_detection.pt'), device="cpu")
+        print(f"✓ FruitCounter loaded: {_fruit_counter.loaded}")
+    except Exception as e:
+        print(f"✗ FruitCounter load failed: {e}")
+
+    try:
+        _ripeness_classifier = RipenessClassifier(model_path=os.path.join(models_dir, 'ripeness_classifier.pth'), device="cpu")
+        print(f"✓ RipenessClassifier loaded: {_ripeness_classifier.loaded}")
+    except Exception as e:
+        print(f"✗ RipenessClassifier load failed: {e}")
+
+    try:
+        _leaf_segmentation = LeafSegmentation(model_path=os.path.join(models_dir, 'leaf_segmentation.pth'), device="cpu")
+        print(f"✓ LeafSegmentation loaded: {_leaf_segmentation.loaded}")
+    except Exception as e:
+        print(f"✗ LeafSegmentation load failed: {e}")
 
     _models_loaded = all([
         _fruit_counter and _fruit_counter.loaded,
@@ -56,7 +72,6 @@ def load_models():
 
     print("✓ All models loaded" if _models_loaded else "✗ One or more models failed to load")
 
-# Call immediately when module is imported
 load_models()
 
 
