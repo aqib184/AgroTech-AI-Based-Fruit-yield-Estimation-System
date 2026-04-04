@@ -79,7 +79,7 @@ class DebugView(APIView):
 
         try:
             # Download a sample MinneApple-style image from the web
-            url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/800px-Red_Apple.jpg"
+            url = "https://cdn.datasetninja.com/previews/q/ext:jpeg/resize:fill:400:0:0/q:70/plain/supervisely-assets-public/images/original/m/l/gP/4OOCFeYJZ2wg3N3d7C4rCzEhXzDgPCu1pUEZth6hR2n7ifxAu4GCA60bbcXFw8oob74uKsztHqRzEvtrFFcxVaTCW0sDKhaDJEtPUfbskR2lsHJciyEAtcXyZnYJ.png"
             with urllib.request.urlopen(url) as response:
                 img_data = response.read()
             
