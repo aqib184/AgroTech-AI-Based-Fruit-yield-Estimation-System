@@ -90,17 +90,21 @@ class FruitCounter:
     
         for img in images:
             try:
-                img_array = np.array(img)
+                # Feed PIL image directly to YOLO - no numpy conversion needed
+                # cv2.rotate requires numpy, so only convert if rotation needed
+                img_array = np.array(img)  # RGB from PIL
                 img_h, img_w = img_array.shape[:2]
-                print(f"Image shape: {img_array.shape}", flush=True)
-    
-                # Rotate if portrait orientation
+                
                 if img_h > img_w:
+                    # cv2.rotate doesn't affect channels, RGB stays RGB
                     img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
                     img_h, img_w = img_array.shape[:2]
-                    print(f"Rotated to: {img_array.shape}", flush=True)
-    
-                results = self.model.predict(img_array, conf=0.1, verbose=False)
+                    # Convert back to PIL for YOLO
+                    img_to_predict = Image.fromarray(img_array)
+                else:
+                    img_to_predict = img  # Use original PIL directly
+                
+                results = self.model.predict(img_to_predict, conf=0.1, verbose=False)
                 print(f"Detections: {len(results[0].boxes)}", flush=True)
                 print(f"Confidences: {[round(float(b.conf[0]), 3) for b in results[0].boxes]}", flush=True)
     
