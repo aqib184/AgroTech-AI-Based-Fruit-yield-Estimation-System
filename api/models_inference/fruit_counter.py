@@ -60,11 +60,16 @@ class FruitCounter:
             try:
                 img_array = np.array(img)
                 img_h, img_w = img_array.shape[:2]
-                print(f"Image shape: {img_array.shape}, dtype: {img_array.dtype}", flush=True)
-        
-                results = self.model.predict(img_array, conf=0.25, verbose=True)
-                print(f"Results: {results}", flush=True)
-                print(f"Number of results: {len(results)}", flush=True)
+                print(f"Original shape: {img_array.shape}", flush=True)
+                
+                # Rotate if portrait orientation
+                if img_h > img_w:
+                    img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
+                    print(f"Rotated to: {img_array.shape}", flush=True)
+                
+                results = self.model.predict(img_array, conf=0.1, verbose=True)
+                print(f"Detections: {len(results[0].boxes)}", flush=True)
+                print(f"Confidences: {[float(b.conf[0]) for b in results[0].boxes]}", flush=True)
         
                 if results and len(results) > 0:
                     result = results[0]
