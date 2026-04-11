@@ -19,6 +19,10 @@ MATURITY_FACTORS = {
 }
 
 
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, float(value)))
+
+
 def calculate_yield(
     adjusted_count: int,
     ripe_pct: float,
@@ -27,10 +31,15 @@ def calculate_yield(
     variety: str,
     tree_maturity: str,
     canopy_factor: float,
-    final_tree_count: int
+    final_tree_count: int,
+    canopy_completeness: float = 0.5,
+    vigor_index: float = 0.5,
+    vigor_reliability: float = 0.6,
+    occlusion_factor: float = 1.0,
+    mean_fruit_confidence: float = 0.75,
 ) -> Dict:
     """
-    Calculate yield estimate using the proprietary formula.
+    Calculate yield estimate using a multi-factor orchard model.
     
     Args:
         adjusted_count: Fruit count after double-count correction
@@ -43,43 +52,83 @@ def calculate_yield(
         final_tree_count: Total number of trees in orchard
         
     Returns:
-        {
-            'per_tree_yield_kg': float,
-            'orchard_yield_kg': float,
-            'lower_bound': float,  # 85% confidence interval
-            'upper_bound': float   # 115% confidence interval
-        }
+        Dictionary with point estimate, confidence bounds, and factor breakdown.
     """
-    
+
     # Get variety mass data
     masses = VARIETY_MASSES.get(variety, VARIETY_MASSES["other"])
-    
+
     # Calculate weighted average mass (grams)
+    ripe_share = ripe_pct / 100.0
+    midripe_share = midripe_pct / 100.0
+    unripe_share = unripe_pct / 100.0
+
     weighted_mass_g = (
-        (ripe_pct / 100) * masses["ripe"] +
-        (midripe_pct / 100) * masses["midripe"] +
-        (unripe_pct / 100) * masses["unripe"]
+        ripe_share * masses["ripe"] +
+        midripe_share * masses["midripe"] +
+        unripe_share * masses["unripe"]
     )
-    
+
     # Convert to kg
     weighted_mass_kg = weighted_mass_g / 1000
-    
+
     # Get maturity factor
     maturity_factor = MATURITY_FACTORS.get(tree_maturity, 1.0)
-    
-    # Calculate per-tree yield
-    per_tree_yield_kg = adjusted_count * weighted_mass_kg * canopy_factor
-    
-    # Calculate orchard yield
+
+    # Ripeness raises expected marketable mass while unripe share lowers short-term harvest value.
+    ripeness_factor = _clamp(
+        0.88 + (0.24 * ripe_share) + (0.12 * midripe_share) - (0.06 * unripe_share),
+        0.82,
+        1.12,
+    )
+    canopy_health_factor = _clamp(
+        0.82 + (0.22 * canopy_factor) + (0.08 * canopy_completeness),
+        0.78,
+        1.15,
+    )
+    base_vigor_factor = _clamp(0.94 + (0.12 * vigor_index), 0.94, 1.06)
+    vigor_reliability = _clamp(vigor_reliability, 0.0, 1.0)
+    # Keep RGB-VVI as a secondary signal by shrinking its effect when reliability is low.
+    vigor_factor = 1.0 + ((base_vigor_factor - 1.0) * vigor_reliability)
+    vigor_factor = _clamp(vigor_factor, 0.94, 1.06)
+    occlusion_factor = _clamp(occlusion_factor, 0.90, 1.20)
+
+    # Yield per tree uses visible fruits scaled by maturity, canopy, vigor, and occlusion adjustments.
+    per_tree_yield_kg = (
+        adjusted_count
+        * weighted_mass_kg
+        * ripeness_factor
+        * canopy_health_factor
+        * vigor_factor
+        * occlusion_factor
+    )
+
     orchard_yield_kg = per_tree_yield_kg * final_tree_count * maturity_factor
-    
-    # Calculate confidence interval (±15%)
-    lower_bound = orchard_yield_kg * 0.85
-    upper_bound = orchard_yield_kg * 1.15
-    
+
+    # Uncertainty narrows when detector confidence and canopy quality are strong.
+    confidence_signal = _clamp(
+        (0.5 * mean_fruit_confidence) + (0.3 * canopy_completeness) + (0.2 * canopy_factor),
+        0.0,
+        1.0,
+    )
+    uncertainty_ratio = _clamp(0.24 - (0.14 * confidence_signal), 0.10, 0.24)
+    lower_bound = orchard_yield_kg * (1.0 - uncertainty_ratio)
+    upper_bound = orchard_yield_kg * (1.0 + uncertainty_ratio)
+
     return {
         'per_tree_yield_kg': per_tree_yield_kg,
         'orchard_yield_kg': orchard_yield_kg,
         'lower_bound': lower_bound,
-        'upper_bound': upper_bound
+        'upper_bound': upper_bound,
+        'uncertainty_ratio': uncertainty_ratio,
+        'factors': {
+            'weighted_mass_kg': weighted_mass_kg,
+            'maturity_factor': maturity_factor,
+            'ripeness_factor': ripeness_factor,
+            'canopy_health_factor': canopy_health_factor,
+            'vigor_factor': vigor_factor,
+            'vigor_reliability': vigor_reliability,
+            'occlusion_factor': occlusion_factor,
+            'confidence_signal': confidence_signal,
+        },
     }

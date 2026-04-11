@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fruit Yield Visualizer</title>
+  <style>
+    :root {
+      --bg: #f7f7f2;
+      --card: #fffef8;
+      --ink: #1f2933;
+      --muted: #6b7280;
+      --accent: #0f766e;
+      --accent-soft: #99f6e4;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --ring: #115e59;
+      --shadow: 0 24px 48px rgba(15, 118, 110, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 300px at 20% -50%, #d1fae5 0%, transparent 70%),
+        radial-gradient(800px 240px at 95% 0%, #fde68a 0%, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(1100px, 92vw);
+      margin: 2rem auto 3rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero {
+      background: linear-gradient(125deg, #134e4a, #0f766e);
+      color: white;
+      border-radius: 20px;
+      padding: 1.2rem 1.4rem;
+      box-shadow: var(--shadow);
+      animation: liftIn 440ms ease-out;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 3vw, 2rem);
+      letter-spacing: 0.3px;
+    }
+
+    .hero p {
+      margin: 0.45rem 0 0;
+      color: #d1fae5;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      animation: liftIn 520ms ease-out;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 0.3rem;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+
+    input, select, button {
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 0.65rem 0.75rem;
+      font: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid var(--accent-soft);
+      border-color: var(--ring);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin-top: 0.2rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: #0d9488;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+
+    .details-grid {
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .kv-card {
+      border-radius: 12px;
+      padding: 0.75rem;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+    }
+
+    .kv-card h4 {
+      margin: 0 0 0.55rem;
+      font-size: 0.88rem;
+      color: #0f766e;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+
+    .kv-list {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      border-bottom: 1px dashed #e5e7eb;
+      padding-bottom: 0.2rem;
+    }
+
+    .kv-row span:first-child {
+      color: var(--muted);
+    }
+
+    .kv-row span:last-child {
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .chip {
+      border-radius: 12px;
+      padding: 0.65rem;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+    }
+
+    .chip h3 {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+
+    .chip p {
+      margin: 0.2rem 0 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .results {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .visual-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 0.8rem;
+      background: white;
+      display: grid;
+      gap: 0.6rem;
+      animation: rise 320ms ease;
+    }
+
+    .visual-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .visual-head strong {
+      font-size: 1rem;
+    }
+
+    .visual-meta {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .visual-grid img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      background: #f3f4f6;
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    @keyframes liftIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .visual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>Fruit Yield Inference Visualizer</h1>
+      <p>Run the finalized pipeline and inspect detections, canopy structure, RGB-VVI, and multi-factor yield estimation in one place.</p>
+    </section>
+
+    <section class="panel">
+      <form id="predictForm">
+        <div class="grid">
+          <div class="field">
+            <label for="images">Images</label>
+            <input id="images" name="images" type="file" accept="image/*" multiple required />
+          </div>
+          <div class="field">
+            <label for="variety">Variety</label>
+            <select id="variety" name="variety">
+              <option value="golden_delicious">Golden Delicious</option>
+              <option value="fuji">Fuji</option>
+              <option value="gala" selected>Gala</option>
+              <option value="granny_smith">Granny Smith</option>
+              <option value="honeycrisp">Honeycrisp</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tree_maturity">Tree Maturity</label>
+            <select id="tree_maturity" name="tree_maturity">
+              <option value="young">Young</option>
+              <option value="mature" selected>Mature</option>
+              <option value="old">Old</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="planting_density">Planting Density</label>
+            <select id="planting_density" name="planting_density">
+              <option value="traditional">Traditional</option>
+              <option value="semi_dwarf" selected>Semi Dwarf</option>
+              <option value="high_density">High Density</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="total_trees">Total Trees</label>
+            <input id="total_trees" name="total_trees" type="number" min="1" value="120" />
+          </div>
+          <div class="field">
+            <label for="orchard_area">Orchard Area (acres)</label>
+            <input id="orchard_area" name="orchard_area" type="number" step="0.1" min="0.1" value="1" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Run Visual Inference</button>
+          <span class="status" id="statusText">Waiting for input</span>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel stats" id="statsPanel" hidden>
+      <article class="chip"><h3>Adjusted Count</h3><p id="adjustedCount">-</p></article>
+      <article class="chip"><h3>Ripe %</h3><p id="ripePct">-</p></article>
+      <article class="chip"><h3>Midripe %</h3><p id="midripePct">-</p></article>
+      <article class="chip"><h3>Canopy Score</h3><p id="canopyScore">-</p></article>
+      <article class="chip"><h3>RGB-VVI</h3><p id="rgbVvi">-</p></article>
+      <article class="chip"><h3>Yield (kg)</h3><p id="yieldKg">-</p></article>
+      <article class="chip"><h3>Yield (t)</h3><p id="yieldTonnes">-</p></article>
+    </section>
+
+    <section class="panel details-grid" id="detailsPanel" hidden>
+      <article class="kv-card">
+        <h4>Vegetation Vigor</h4>
+        <div class="kv-list" id="vigorList"></div>
+      </article>
+      <article class="kv-card">
+        <h4>Feature Vector</h4>
+        <div class="kv-list" id="featureList"></div>
+      </article>
+      <article class="kv-card">
+        <h4>Yield Factors</h4>
+        <div class="kv-list" id="yieldFactorList"></div>
+      </article>
+    </section>
+
+    <section class="panel" id="errorPanel" hidden>
+      <div class="error" id="errorText"></div>
+    </section>
+
+    <section class="panel results" id="results"></section>
+  </main>
+
+  <script>
+    const form = document.getElementById("predictForm");
+    const statusText = document.getElementById("statusText");
+    const errorPanel = document.getElementById("errorPanel");
+    const errorText = document.getElementById("errorText");
+    const statsPanel = document.getElementById("statsPanel");
+    const detailsPanel = document.getElementById("detailsPanel");
+    const vigorList = document.getElementById("vigorList");
+    const featureList = document.getElementById("featureList");
+    const yieldFactorList = document.getElementById("yieldFactorList");
+    const results = document.getElementById("results");
+
+    function pretty(value, digits = 3) {
+      if (value === null || value === undefined) return "-";
+      if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(digits);
+      return String(value);
+    }
+
+    function renderKvList(container, rows) {
+      container.innerHTML = "";
+      rows.forEach(([label, value]) => {
+        const row = document.createElement("div");
+        row.className = "kv-row";
+        row.innerHTML = `<span>${label}</span><span>${pretty(value)}</span>`;
+        container.appendChild(row);
+      });
+    }
+
+    function setError(message) {
+      errorPanel.hidden = !message;
+      errorText.textContent = message || "";
+    }
+
+    function updateStats(data) {
+      statsPanel.hidden = false;
+      detailsPanel.hidden = false;
+      document.getElementById("adjustedCount").textContent = data.fruit_count.adjusted_count;
+      document.getElementById("ripePct").textContent = `${data.ripeness.ripe_percentage}%`;
+      document.getElementById("midripePct").textContent = `${data.ripeness.midripe_percentage}%`;
+      document.getElementById("canopyScore").textContent = data.leaf_area.canopy_density_score;
+      document.getElementById("rgbVvi").textContent = pretty(data.vegetation_vigor?.rgb_vvi_score, 3);
+      document.getElementById("yieldKg").textContent = pretty(data.yield_estimate?.orchard_yield_kg, 1);
+      document.getElementById("yieldTonnes").textContent = pretty(data.yield_estimate?.orchard_yield_tonnes, 2);
+
+      renderKvList(vigorList, [
+        ["RGB-VVI", data.vegetation_vigor?.rgb_vvi_score],
+        ["VARI Mean", data.vegetation_vigor?.vari_mean],
+        ["ExG Mean", data.vegetation_vigor?.exg_mean],
+        ["NGRDI Mean", data.vegetation_vigor?.ngrdi_mean],
+        ["Leaf Pixels", data.vegetation_vigor?.total_leaf_pixels],
+      ]);
+
+      const fv = data.feature_vector || {};
+      renderKvList(featureList, [
+        ["Adjusted Count", fv.adjusted_count],
+        ["Fruit / MPx", fv.fruit_per_mpx],
+        ["BBox Coverage", fv.bbox_coverage_ratio],
+        ["Mean BBox Area", fv.mean_bbox_area_px],
+        ["Canopy Completeness", fv.canopy_completeness_score],
+        ["Overlap Ratio", fv.overlap_ratio],
+        ["Occlusion Factor", fv.occlusion_factor],
+        ["Mean Detection Conf", fv.mean_detection_confidence],
+      ]);
+
+      const yf = data.yield_estimate?.factors || {};
+      renderKvList(yieldFactorList, [
+        ["Weighted Mass (kg)", yf.weighted_mass_kg],
+        ["Maturity Factor", yf.maturity_factor],
+        ["Ripeness Factor", yf.ripeness_factor],
+        ["Canopy Factor", yf.canopy_health_factor],
+        ["Vigor Factor", yf.vigor_factor],
+        ["Occlusion Factor", yf.occlusion_factor],
+        ["Confidence Signal", yf.confidence_signal],
+        ["Uncertainty Ratio", data.yield_estimate?.uncertainty_ratio],
+      ]);
+    }
+
+    function renderVisuals(data) {
+      results.innerHTML = "";
+      const visuals = data.visualizations || [];
+
+      if (!visuals.length) {
+        results.innerHTML = "<p>No visualization data returned.</p>";
+        return;
+      }
+
+      visuals.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "visual-card";
+
+        const head = document.createElement("div");
+        head.className = "visual-head";
+        head.innerHTML = `
+          <strong>Image ${item.image_index + 1}</strong>
+          <span class="visual-meta">Detections: ${item.detected_count} | Leaf method: ${item.leaf_method}</span>
+        `;
+
+        const grid = document.createElement("div");
+        grid.className = "visual-grid";
+
+        const bbox = document.createElement("img");
+        bbox.alt = `Detection overlay ${item.image_index + 1}`;
+        bbox.src = `data:image/png;base64,${item.bbox_overlay_base64}`;
+
+        const leaf = document.createElement("img");
+        leaf.alt = `Leaf overlay ${item.image_index + 1}`;
+        leaf.src = `data:image/png;base64,${item.leaf_overlay_base64}`;
+
+        grid.appendChild(bbox);
+        grid.appendChild(leaf);
+
+        card.appendChild(head);
+        card.appendChild(grid);
+        results.appendChild(card);
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setError("");
+      results.innerHTML = "";
+      statusText.textContent = "Running model inference...";
+
+      const formData = new FormData();
+      const images = document.getElementById("images").files;
+      if (!images.length) {
+        setError("Please select at least one image.");
+        return;
+      }
+
+      for (const image of images) {
+        formData.append("images", image);
+      }
+
+      ["variety", "tree_maturity", "planting_density", "total_trees", "orchard_area"].forEach((key) => {
+        const value = document.getElementById(key).value;
+        if (value) {
+          formData.append(key, value);
+        }
+      });
+
+      formData.append("include_visuals", "true");
+
+      try {
+        const response = await fetch("/api/predict/yield/", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Prediction failed.");
+        }
+
+        updateStats(data);
+        renderVisuals(data);
+        statusText.textContent = "Inference complete.";
+      } catch (error) {
+        statusText.textContent = "Inference failed.";
+        setError(error.message || "An unexpected error occurred.");
+      }
+    });
+  </script>
+</body>
+</html>

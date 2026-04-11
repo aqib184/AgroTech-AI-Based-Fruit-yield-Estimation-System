@@ -1,7 +1,6 @@
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 
-import cv2
 import numpy as np
 from PIL import Image
 from ultralytics import YOLO
@@ -16,22 +15,20 @@ class FruitCounter:
     def __init__(self, model_path: str, device: Optional[str] = None):
         self.model_path = Path(model_path)
         self.device = device or 0  # 0 for GPU, "cpu" for CPU
+        self.conf_threshold = 0.47
+        self.iou_threshold = 0.40
+        self.img_size = 1280
         self.model = None
         self.loaded = False
         self._load_model()
     
     
     def _load_model(self):
-        print(f"Absolute path: {self.model_path.resolve()}")
         try:
-            print(f"Loading YOLO from: {self.model_path}")
-            print(f"Model file exists: {self.model_path.exists()}")
-            print(f"Model file size: {self.model_path.stat().st_size if self.model_path.exists() else 'NOT FOUND'}")
             self.model = YOLO(str(self.model_path))
             self.model.to("cpu")
             self.loaded = True
             # Test with a dummy image
-            import numpy as np
             dummy = np.zeros((640, 640, 3), dtype=np.uint8)
             test_result = self.model.predict(dummy, conf=0.25, verbose=False)
             print(f"✓ YOLO test inference: {len(test_result[0].boxes)} detections on blank image", flush=True)
@@ -58,21 +55,17 @@ class FruitCounter:
     
         for img in images:
             try:
-                img_array = np.array(img)
-                img_h, img_w = img_array.shape[:2]
-    
-                # Rotate if portrait orientation
-                if img_h > img_w:
-                    img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
-    
-                results = self.model.predict(img_array, conf=0.1, verbose=False)
-    
-                if results and len(results) > 0:
-                    num_detections = len(results[0].boxes)
-                    per_image_counts.append(num_detections)
-                    raw_count += num_detections
-                else:
-                    per_image_counts.append(0)
+                input_image = img.convert("RGB")
+                results = self.model.predict(
+                    input_image,
+                    conf=self.conf_threshold,
+                    iou=self.iou_threshold,
+                    imgsz=self.img_size,
+                    verbose=False,
+                )
+                num_detections = len(results[0].boxes) if results else 0
+                per_image_counts.append(num_detections)
+                raw_count += num_detections
     
             except Exception as e:
                 print(f"⚠️ YOLO error: {e}", flush=True)
@@ -80,59 +73,63 @@ class FruitCounter:
     
         return raw_count, per_image_counts
 
-    def detect_fruits_with_crops(self, images: List[Image.Image]) -> Tuple[int, List[int], List[List[Image.Image]]]:
+    def detect_fruits_with_crops(
+        self,
+        images: List[Image.Image],
+    ) -> Tuple[int, List[int], List[List[Image.Image]], List[List[Dict]]]:
         if not self.loaded or self.model is None:
             raise RuntimeError("YOLO model not loaded")
     
         raw_count = 0
         per_image_counts = []
         all_crops = []
+        all_detections = []
     
         for img in images:
             try:
-                # Feed PIL image directly to YOLO - no numpy conversion needed
-                # cv2.rotate requires numpy, so only convert if rotation needed
-                img_array = np.array(img)  # RGB from PIL
-                img_h, img_w = img_array.shape[:2]
-                
-                if img_h > img_w:
-                    # cv2.rotate doesn't affect channels, RGB stays RGB
-                    img_array = cv2.rotate(img_array, cv2.ROTATE_90_CLOCKWISE)
-                    img_h, img_w = img_array.shape[:2]
-                    # Convert back to PIL for YOLO
-                    img_to_predict = Image.fromarray(img_array)
-                else:
-                    img_to_predict = img  # Use original PIL directly
-                
-                results = self.model.predict(img_to_predict, conf=0.4, verbose=False)
-                print(f"Detections: {len(results[0].boxes)}", flush=True)
-                print(f"Confidences: {[round(float(b.conf[0]), 3) for b in results[0].boxes]}", flush=True)
-    
                 image_crops = []
-    
-                if results and len(results) > 0:
+                image_detections = []
+
+                input_image = img.convert("RGB")
+                results = self.model.predict(
+                    input_image,
+                    conf=self.conf_threshold,
+                    iou=self.iou_threshold,
+                    imgsz=self.img_size,
+                    verbose=False,
+                )
+
+                if results and len(results) > 0 and results[0].boxes is not None:
                     result = results[0]
                     num_detections = len(result.boxes)
                     per_image_counts.append(num_detections)
                     raw_count += num_detections
-    
+
                     for box in result.boxes:
                         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                        x1 = max(0, x1)
-                        y1 = max(0, y1)
-                        x2 = min(img_w, x2)
-                        y2 = min(img_h, y2)
+                        conf = float(box.conf[0])
+
                         crop = img.crop((x1, y1, x2, y2))
                         image_crops.append(crop)
-    
+                        image_detections.append(
+                            {
+                                "bbox": [x1, y1, x2, y2],
+                                "confidence": conf,
+                                "class_id": int(box.cls[0]) if box.cls is not None else 0,
+                            }
+                        )
+
                     all_crops.append(image_crops)
+                    all_detections.append(image_detections)
                 else:
                     per_image_counts.append(0)
                     all_crops.append([])
+                    all_detections.append([])
     
             except Exception as e:
                 print(f"⚠️ YOLO error: {e}", flush=True)
                 per_image_counts.append(0)
                 all_crops.append([])
+                all_detections.append([])
     
-        return raw_count, per_image_counts, all_crops
+        return raw_count, per_image_counts, all_crops, all_detections
