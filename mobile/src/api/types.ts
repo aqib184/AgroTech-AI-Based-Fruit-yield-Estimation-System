@@ -152,6 +152,9 @@ export type EstimationDetail = {
     uncertainty_pct: number | null;
     factors: Record<string, number>;
   };
+  feature_vector: Record<string, number | string | null>;
+  visualizations: YieldPredictVisualization[];
+  harvest_recommendation: string;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -233,6 +236,8 @@ export type DashboardSummary = {
   avg_yield_per_estimation_kg: number;
   orchards_with_estimations: number;
   ripe_average_pct: number;
+  avg_canopy_pct: number;
+  avg_vigor_pct: number;
 };
 
 export type DashboardTimePoint = {
@@ -240,6 +245,8 @@ export type DashboardTimePoint = {
   estimations: number;
   total_yield_kg: number;
   avg_ripe_pct: number;
+  avg_canopy_pct?: number;
+  avg_vigor_pct?: number;
 };
 
 export type DashboardVarietyRow = {
@@ -270,6 +277,8 @@ export type OrchardAnalyticsResponse = {
     avg_ripeness_pct: number | null;
     avg_canopy_score: number | null;
     avg_vvi_score: number | null;
+    avg_uncertainty_kg: number | null;
+    avg_overlap_ratio: number | null;
   };
   estimations_trend: {
     date: string;
@@ -277,6 +286,9 @@ export type OrchardAnalyticsResponse = {
     yield_kg: number;
     ripe_pct: number;
     canopy_score: number;
+    vigor_score: number;
+    uncertainty_kg: number;
+    overlap_ratio: number;
   }[];
   yield_factors_avg: Record<string, number>;
 };
@@ -297,7 +309,7 @@ export type PredictYieldFormInput = {
   area_unit?: 'acres' | 'hectares';
   orchard_id?: number | null;
   include_visuals: boolean;
-  images: { uri: string; name: string; type: string }[];
+  images: { uri: string; name: string; type: string; file?: File | Blob }[];
 };
 
 export type YieldPredictVisualization = {

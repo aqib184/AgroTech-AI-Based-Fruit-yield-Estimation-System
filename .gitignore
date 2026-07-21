@@ -9,4 +9,4 @@ db.sqlite3
 Thumbs.db
 *.log
 .vscode/
-models/
+.dockerignore

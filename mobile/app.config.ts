@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
+  newArchEnabled: false,
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
@@ -33,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
   },
   plugins: [
+    'expo-font',
     [
       'expo-location',
       {
@@ -42,9 +43,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   ],
   extra: {
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000',
+    apiBaseUrl: (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, ''),
     weatherApiKey: process.env.EXPO_PUBLIC_WEATHER_API_KEY ?? '',
     openWeatherBaseUrl:
-      process.env.EXPO_PUBLIC_OPENWEATHER_BASE_URL ?? 'https://api.openweathermap.org/data/2.5',
+      (process.env.EXPO_PUBLIC_OPENWEATHER_BASE_URL ?? 'https://api.openweathermap.org/data/3.0').replace(
+        /\/$/,
+        ''
+      ),
   },
 });

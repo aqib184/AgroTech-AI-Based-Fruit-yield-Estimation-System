@@ -108,8 +108,8 @@ class OrchardViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def get_serializer_class(self):
-        """Use detail serializer for retrieve, list serializer otherwise."""
-        if self.action == 'retrieve':
+        """Use write-capable serializer for detail/create/update operations."""
+        if self.action in ['retrieve', 'create', 'update', 'partial_update']:
             return OrchardDetailSerializer
         return OrchardListSerializer
     
@@ -345,6 +345,10 @@ class DashboardViewSet(viewsets.ViewSet):
             avg=Avg('ripe_percentage')
         )['avg'] or 0
         
+        # New metrics
+        avg_canopy = estimations.aggregate(avg=Avg('canopy_completeness_score'))['avg'] or 0
+        avg_vigor = estimations.aggregate(avg=Avg('rgb_vvi_score'))['avg'] or 0
+        
         # Build time series
         from django.db.models.functions import TruncDate
         time_series = (
@@ -388,6 +392,8 @@ class DashboardViewSet(viewsets.ViewSet):
                 'avg_yield_per_estimation_kg': avg_yield,
                 'orchards_with_estimations': orchards_with_est,
                 'ripe_average_pct': avg_ripeness,
+                'avg_canopy_pct': round(float(avg_canopy or 0), 1),
+                'avg_vigor_pct': round(float(avg_vigor or 0), 1),
             },
             'time_series': [
                 {
@@ -451,21 +457,34 @@ class OrchardAnalyticsViewSet(viewsets.ViewSet):
         estimations = orchard.estimations.filter(estimation_date__gte=cutoff)
         
         # Summary
+        summary_agg = estimations.aggregate(
+            avg_yield_kg=Avg('orchard_yield_kg'),
+            max_yield_kg=Max('orchard_yield_kg'),
+            min_yield_kg=Min('orchard_yield_kg'),
+            avg_ripeness_pct=Avg('ripe_percentage'),
+            avg_canopy_score=Avg('canopy_completeness_score'),
+            avg_vvi_score=Avg('rgb_vvi_score'),
+            avg_uncertainty_kg=Avg('yield_uncertainty_kg'),
+            avg_overlap_ratio=Avg('overlap_ratio'),
+        )
         summary = {
             'estimations': estimations.count(),
-            'avg_yield_kg': estimations.aggregate(avg=Avg('orchard_yield_kg'))['avg'],
-            'max_yield_kg': estimations.aggregate(max=Max('orchard_yield_kg'))['max'],
-            'min_yield_kg': estimations.aggregate(Min('orchard_yield_kg'))['min'],
-            'avg_ripeness_pct': estimations.aggregate(avg=Avg('ripe_percentage'))['avg'],
-            'avg_canopy_score': estimations.aggregate(avg=Avg('canopy_completeness_score'))['avg'],
-            'avg_vvi_score': estimations.aggregate(avg=Avg('rgb_vvi_score'))['avg'],
+            'avg_yield_kg': summary_agg.get('avg_yield_kg'),
+            'max_yield_kg': summary_agg.get('max_yield_kg'),
+            'min_yield_kg': summary_agg.get('min_yield_kg'),
+            'avg_ripeness_pct': summary_agg.get('avg_ripeness_pct'),
+            'avg_canopy_score': summary_agg.get('avg_canopy_score'),
+            'avg_vvi_score': summary_agg.get('avg_vvi_score'),
+            'avg_uncertainty_kg': summary_agg.get('avg_uncertainty_kg'),
+            'avg_overlap_ratio': summary_agg.get('avg_overlap_ratio'),
         }
         
         # Trend data
         estimations_trend = estimations.values(
             'estimation_date', 'adjusted_fruit_count',
             'orchard_yield_kg', 'ripe_percentage',
-            'canopy_completeness_score'
+            'canopy_completeness_score', 'rgb_vvi_score',
+            'yield_uncertainty_kg', 'overlap_ratio'
         ).order_by('estimation_date')
         
         # Average factors
@@ -493,6 +512,9 @@ class OrchardAnalyticsViewSet(viewsets.ViewSet):
                     'yield_kg': item['orchard_yield_kg'],
                     'ripe_pct': item['ripe_percentage'],
                     'canopy_score': item['canopy_completeness_score'],
+                    'vigor_score': item['rgb_vvi_score'],
+                    'uncertainty_kg': item['yield_uncertainty_kg'],
+                    'overlap_ratio': item['overlap_ratio'],
                 }
                 for item in estimations_trend
             ],

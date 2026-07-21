@@ -5,11 +5,12 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
-import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { Mutex } from 'async-mutex';
 import type { AuthState } from '@/store/authSlice';
 import { setCredentials, setAccessToken } from '@/store/authSlice';
+import { deleteToken, getToken, setToken } from '@/utils/secureTokens';
 import type {
   DashboardResponse,
   EstimationDetail,
@@ -38,7 +39,41 @@ const extra = Constants.expoConfig?.extra as {
   apiBaseUrl?: string;
 } | null;
 
-const baseUrl = (extra?.apiBaseUrl ?? '').replace(/\/$/, '');
+function normalizeBaseUrl(raw: string): string {
+  const trimmed = raw.replace(/\/$/, '');
+  if (Platform.OS === 'web') {
+    const isLanLike = /^http:\/\/(?:10\.0\.2\.2|192\.168\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/i.test(trimmed);
+    const isLocalhostBrowser =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    // If web is running on this same machine via localhost, prefer localhost API.
+    if (isLanLike && isLocalhostBrowser) {
+      return 'http://127.0.0.1:8000';
+    }
+  }
+  if (Platform.OS === 'android') {
+    return trimmed.replace('127.0.0.1', '10.0.2.2').replace('localhost', '10.0.2.2');
+  }
+  return trimmed;
+}
+
+const baseUrl = normalizeBaseUrl(extra?.apiBaseUrl ?? '');
+
+function normalizeList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) {
+    return payload as T[];
+  }
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'results' in payload &&
+    Array.isArray((payload as { results?: unknown }).results)
+  ) {
+    return (payload as { results: T[] }).results;
+  }
+  return [];
+}
 
 type Rootish = { auth: AuthState };
 
@@ -69,9 +104,9 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     if (!mutex.isLocked()) {
       const release = await mutex.acquire();
       try {
-        const refresh = await SecureStore.getItemAsync('refresh_token');
+        const refresh = await getToken('refresh_token');
         if (!refresh) {
-          await SecureStore.deleteItemAsync('access_token');
+          await deleteToken('access_token');
           api.dispatch(setCredentials(null));
           return result;
         }
@@ -90,12 +125,12 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
           'access' in refreshResult.data
         ) {
           const access = (refreshResult.data as TokenPair).access;
-          await SecureStore.setItemAsync('access_token', access);
+          await setToken('access_token', access);
           api.dispatch(setAccessToken(access));
           result = await rawBaseQuery(args, api, extraOptions);
         } else {
-          await SecureStore.deleteItemAsync('access_token');
-          await SecureStore.deleteItemAsync('refresh_token');
+          await deleteToken('access_token');
+          await deleteToken('refresh_token');
           api.dispatch(setCredentials(null));
         }
       } finally {
@@ -124,6 +159,10 @@ function buildPredictFormData(input: PredictYieldFormInput): FormData {
     fd.append('area_unit', input.area_unit ?? 'acres');
   }
   for (const img of input.images) {
+    if (img.file) {
+      fd.append('images', img.file);
+      continue;
+    }
     fd.append('images', { uri: img.uri, name: img.name, type: img.type } as unknown as Blob);
   }
   return fd;
@@ -173,6 +212,7 @@ export const agroApi = createApi({
 
     orchards: builder.query<OrchardListItem[], void>({
       query: () => '/api/orchards/',
+      transformResponse: (response: unknown) => normalizeList<OrchardListItem>(response),
       providesTags: (res) =>
         res
           ? [...res.map(({ id }) => ({ type: 'Orchard' as const, id })), { type: 'Orchard', id: 'LIST' }]
@@ -280,6 +320,7 @@ export const agroApi = createApi({
 
     taskRules: builder.query<TaskRuleListItem[] | TaskRule[], void>({
       query: () => '/api/task-rules/',
+      transformResponse: (response: unknown) => normalizeList<TaskRuleListItem | TaskRule>(response),
       providesTags: [{ type: 'TaskRule', id: 'LIST' }],
     }),
 

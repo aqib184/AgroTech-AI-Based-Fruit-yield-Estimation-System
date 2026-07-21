@@ -626,6 +626,44 @@ class YieldEstimateView(APIView):
                 "generated_task_ids": [],
             }
 
+            response_data["detections"] = {
+                "per_image": per_image_detections,
+                "settings": {
+                    "conf": getattr(_fruit_counter, "conf_threshold", None),
+                    "iou": getattr(_fruit_counter, "iou_threshold", None),
+                    "imgsz": getattr(_fruit_counter, "img_size", None),
+                    "min_side": getattr(_fruit_counter, "min_box_side_px", None),
+                    "min_area": getattr(_fruit_counter, "min_box_area_px", None),
+                    "tile_overlap": getattr(_fruit_counter, "tile_overlap", None),
+                    "small_conf_boost": getattr(_fruit_counter, "small_box_conf_boost", None),
+                    "tiny_box_area": getattr(_fruit_counter, "tiny_box_area_px", None),
+                    "mode": "tiled" if getattr(_fruit_counter, "enable_tiled_inference", False) else "direct",
+                    "augment": getattr(_fruit_counter, "use_test_time_augmentation", False),
+                },
+            }
+
+            if include_visuals:
+                visualizations = []
+                for index, image in enumerate(pil_images):
+                    detections = per_image_detections[index] if index < len(per_image_detections) else []
+                    leaf_item = leaf_per_image[index] if index < len(leaf_per_image) else {}
+                    mask = leaf_item.get("mask")
+
+                    boxed = _draw_detection_overlay(image, detections)
+                    segmented = _overlay_leaf_mask(image, mask)
+
+                    visualizations.append(
+                        {
+                            "image_index": index,
+                            "detected_count": len(detections),
+                            "leaf_method": leaf_item.get("method", "model"),
+                            "bbox_overlay_base64": _image_to_base64(boxed),
+                            "leaf_overlay_base64": _image_to_base64(segmented),
+                        }
+                    )
+
+                response_data["visualizations"] = visualizations
+
             orchard_id = validated_data.get("orchard_id")
             if orchard_id and getattr(request.user, "is_authenticated", False):
                 try:
@@ -694,44 +732,6 @@ class YieldEstimateView(APIView):
                     }
 
             response_data["history"] = history_result
-
-            response_data["detections"] = {
-                "per_image": per_image_detections,
-                "settings": {
-                    "conf": getattr(_fruit_counter, "conf_threshold", None),
-                    "iou": getattr(_fruit_counter, "iou_threshold", None),
-                    "imgsz": getattr(_fruit_counter, "img_size", None),
-                    "min_side": getattr(_fruit_counter, "min_box_side_px", None),
-                    "min_area": getattr(_fruit_counter, "min_box_area_px", None),
-                    "tile_overlap": getattr(_fruit_counter, "tile_overlap", None),
-                    "small_conf_boost": getattr(_fruit_counter, "small_box_conf_boost", None),
-                    "tiny_box_area": getattr(_fruit_counter, "tiny_box_area_px", None),
-                    "mode": "tiled" if getattr(_fruit_counter, "enable_tiled_inference", False) else "direct",
-                    "augment": getattr(_fruit_counter, "use_test_time_augmentation", False),
-                },
-            }
-
-            if include_visuals:
-                visualizations = []
-                for index, image in enumerate(pil_images):
-                    detections = per_image_detections[index] if index < len(per_image_detections) else []
-                    leaf_item = leaf_per_image[index] if index < len(leaf_per_image) else {}
-                    mask = leaf_item.get("mask")
-
-                    boxed = _draw_detection_overlay(image, detections)
-                    segmented = _overlay_leaf_mask(image, mask)
-
-                    visualizations.append(
-                        {
-                            "image_index": index,
-                            "detected_count": len(detections),
-                            "leaf_method": leaf_item.get("method", "model"),
-                            "bbox_overlay_base64": _image_to_base64(boxed),
-                            "leaf_overlay_base64": _image_to_base64(segmented),
-                        }
-                    )
-
-                response_data["visualizations"] = visualizations
 
             return Response(response_data, status=status.HTTP_200_OK)
 

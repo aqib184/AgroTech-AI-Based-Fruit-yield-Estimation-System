@@ -184,6 +184,9 @@ class EstimationDetailSerializer(serializers.ModelSerializer):
     canopy = serializers.SerializerMethodField()
     vegetation_vigor = serializers.SerializerMethodField()
     yield_estimate = serializers.SerializerMethodField()
+    feature_vector = serializers.SerializerMethodField()
+    visualizations = serializers.SerializerMethodField()
+    harvest_recommendation = serializers.SerializerMethodField()
     
     class Meta:
         model = EstimationRecord
@@ -191,12 +194,14 @@ class EstimationDetailSerializer(serializers.ModelSerializer):
             'id', 'orchard', 'estimation_date', 'num_images',
             'raw_fruit_count', 'adjusted_fruit_count', 'overlap_ratio',
             'ripeness', 'canopy', 'vegetation_vigor', 'yield_estimate',
+            'feature_vector', 'visualizations', 'harvest_recommendation',
             'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'estimation_date', 'raw_fruit_count', 'adjusted_fruit_count',
             'overlap_ratio', 'ripeness', 'canopy', 'vegetation_vigor',
-            'yield_estimate', 'created_at', 'updated_at'
+            'yield_estimate', 'feature_vector', 'visualizations',
+            'harvest_recommendation', 'created_at', 'updated_at'
         ]
     
     def get_ripeness(self, obj):
@@ -249,6 +254,23 @@ class EstimationDetailSerializer(serializers.ModelSerializer):
             'uncertainty_pct': round(100 * obj.yield_uncertainty_kg / obj.orchard_yield_kg, 1) if obj.orchard_yield_kg > 0 else None,
             'factors': data.get('factors', {}),
         }
+
+    def get_feature_vector(self, obj):
+        """Expose the model feature vector stored in the saved response."""
+        if obj.full_response_json:
+            return obj.full_response_json.get('feature_vector', {})
+        return {}
+
+    def get_visualizations(self, obj):
+        """Expose stored visual overlays for history playback."""
+        if obj.full_response_json:
+            return obj.full_response_json.get('visualizations', [])
+        return []
+
+    def get_harvest_recommendation(self, obj):
+        if obj.full_response_json:
+            return obj.full_response_json.get('harvest_recommendation', '')
+        return ''
 
 
 # ============================================================================
